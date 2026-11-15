@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="description" content="AssetDrop Mobile — Dedicated Two-Stage Ingestion Client">
+  <meta name="theme-color" content="#090d16">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#09090b">
+
+  <!-- Standalone Mobile PWA Meta Tags -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="AssetDrop">
+
+  <!-- Icons & Manifest -->
+  <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/svg+xml" href="/static/icons/icon.svg">
+  <link rel="shortcut icon" href="/favicon.ico">
+
+  <title>AssetDrop // Mobile Client</title>
+  <link rel="stylesheet" href="/static/mobile.css">
+</head>
+<body>
+
+  <!-- Top Instant Toast Notification System (<50ms SLA) -->
+  <div id="toast" class="toast hidden" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="toast-content">
+      <span id="toast-icon" class="toast-icon">✓</span>
+      <span id="toast-message" class="toast-message">Queued! Downloading on PC.</span>
+    </div>
+  </div>
+
+  <!-- Mobile View Container -->
+  <main id="view-mobile" class="mobile-container">
+
+    <!-- App Header & Brand -->
+    <header class="mobile-header">
+      <div class="brand-group">
+        <div class="brand-icon" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">AssetDrop</h1>
+          <span class="brand-subtitle">Mobile Ingestion Client</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ========================================================================= -->
+    <!-- STAGE 1: Connection Screen (#stage-connection)                           -->
+    <!-- Initial default view when unauthenticated                                  -->
+    <!-- Prompts for 5-digit UID and startup connection password                   -->
+    <!-- ========================================================================= -->
+    <section id="stage-connection" class="mobile-stage mobile-card" aria-label="Connect to PC Workstation">
+      <div class="stage-intro">
+        <div class="intro-badge" aria-hidden="true">📲 ⚡ 💻</div>
+        <h2 class="stage-title">Connect to PC Workstation</h2>
+        <p class="stage-desc">
+          Enter the 5-digit UID and password shown on your PC screen to establish communication.
+        </p>
+      </div>
+
+      <!-- Auth Error Banner -->
+      <div id="mobile-auth-error" class="auth-error-banner hidden" role="alert" aria-live="polite">
+        <span class="error-icon" aria-hidden="true">⚠</span>
+        <span id="mobile-auth-error-text" class="error-text">Invalid UID or password. Please verify credentials on the PC screen.</span>
+      </div>
+
+      <!-- Stage 1 Form -->
+      <form id="mobile-auth-form" class="mobile-form" novalidate>
+        <div class="form-field">
+          <label for="mobile-uid-input" class="field-label">5-DIGIT SERVER UID</label>
+          <input
+            type="text"
+            id="mobile-uid-input"
+            class="field-input monospace-input"
+            inputmode="numeric"
+            pattern="[0-9]{5}"
+            maxlength="5"
+            placeholder="e.g. 54321"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="none"
+            spellcheck="false"
+            required
+            aria-describedby="uid-hint"
+          />
+          <span id="uid-hint" class="field-hint">Check "Show Credentials" on your PC dashboard</span>
+        </div>
+
+        <div class="form-field">
+          <label for="mobile-password-input" class="field-label">PC CONNECTION PASSWORD</label>
+          <input
+            type="password"
+            id="mobile-password-input"
+            class="field-input monospace-input"
+            placeholder="Enter PC password"
+            autocomplete="current-password"
+            autocorrect="off"
+            autocapitalize="none"
+            spellcheck="false"
+            required
+          />
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" id="mobile-btn-connect" class="btn btn-primary btn-block">
+            <span>⚡ Connect to PC</span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- STAGE 2: Clean Download Form (#stage-download)                            -->
+    <!-- Main ingestion view after successful authentication                        -->
+    <!-- Strictly contains: URL + Paste, MP3/MP4, PC folder dropdown, Download btn  -->
+    <!-- ========================================================================= -->
+    <section id="stage-download" class="mobile-stage mobile-card hidden" aria-label="Media Ingestion">
+      
+      <!-- Stage 2 Header with Connection Status Pill & Disconnect Control -->
+      <div class="stage-nav">
+        <div id="mobile-connection-badge" class="connection-badge">
+          <span class="status-dot live"></span>
+          <span id="mobile-connected-text">Connected to PC</span>
+        </div>
+        <button type="button" id="mobile-btn-disconnect" class="btn btn-disconnect" aria-label="Disconnect from PC">
+          <span>Disconnect</span>
+        </button>
+      </div>
+
+      <!-- Stage 2 Form -->
+      <form id="mobile-download-form" class="mobile-form">
+
+        <!-- 1. Media URL input with integrated Paste button -->
+        <div class="form-field">
+          <label for="mobile-url-input" class="field-label">MEDIA URL</label>
+          <div class="input-with-action">
+            <input
+              type="url"
+              id="mobile-url-input"
+              class="field-input"
+              placeholder="Paste YouTube, TikTok, Reel link..."
+              autocomplete="off"
+              autocorrect="off"
+              autocapitalize="none"
+              spellcheck="false"
+              required
+            />
+            <button type="button" id="mobile-btn-paste" class="btn btn-action btn-paste" aria-label="Paste URL from Clipboard">
+              <span>📋 Paste</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. MP3 vs MP4 format selector -->
+        <div class="form-field">
+          <label class="field-label">MEDIA FORMAT</label>
+          <div class="segmented-control" role="radiogroup" aria-label="Media Format">
+            <button
+              type="button"
+              id="mobile-fmt-video"
+              class="segment-btn active"
+              role="radio"
+              aria-checked="true"
+              data-format="video"
+            >
+              <span class="segment-icon">🎬</span>
+              <span class="segment-label">Video (MP4)</span>
+            </button>
+            <button
+              type="button"
+              id="mobile-fmt-audio"
+              class="segment-btn"
+              role="radio"
+              aria-checked="false"
+              data-format="audio"
+            >
+              <span class="segment-icon">🎵</span>
+              <span class="segment-label">Audio (MP3)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. Destination folder dropdown populated from PC-configured folders -->
+        <div class="form-field">
+          <label for="mobile-folder-select" class="field-label">SAVE TO PC FOLDER</label>
+          <div class="select-wrapper">
+            <select id="mobile-folder-select" class="field-select" required aria-label="Destination Shared Folder">
+              <option value="" disabled selected>Loading PC folders...</option>
+            </select>
+            <span class="select-caret" aria-hidden="true">▼</span>
+          </div>
+        </div>
+
+        <!-- 4. Primary Ingestion Action Button -->
+        <div class="form-actions" style="margin-top: 1.5rem;">
+          <button type="submit" id="mobile-btn-download" class="btn btn-primary btn-download btn-block">
+            <span class="btn-icon">⚡</span>
+            <span>DOWNLOAD TO PC</span>
+          </button>
+        </div>
+
+      </form>
+    </section>
+
+  </main>
+
+  <script src="/static/mobile.js"></script>
+</body>
+</html>

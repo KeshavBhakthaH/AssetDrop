@@ -1,0 +1,7 @@
+we need to make this an app for both PC and mobile
+
+For PC :
+we need as an APP rather than just a tray, Includes tray too
+
+For Mobile :
+Mobile app rather than a website

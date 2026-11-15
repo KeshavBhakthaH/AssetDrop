@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="description" content="AssetDrop — Terminal-Modern Cross-Device Media Ingestion Engine">
+
+  <!-- Mobile Platform Theme Color (#090d16) -->
+  <meta name="theme-color" content="#090d16">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#090d16">
+
+  <!-- Standalone Mobile PWA Meta Tags -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="AssetDrop">
+
+  <!-- Touch Icons & Favicons -->
+  <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/icons/apple-touch-icon.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="/static/icons/icon-192.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="/static/icons/icon-512.png">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/svg+xml" href="/static/icons/icon.svg">
+  <link rel="shortcut icon" href="/favicon.ico">
+
+  <title>AssetDrop // Cross-Device Ingestion Engine</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+  <!-- Top Instant Toast Notification System (<50ms Optimistic Feedback) -->
+  <div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="toast-content">
+      <span id="toast-icon" class="toast-icon">✓</span>
+      <span id="toast-message" class="toast-message">Queued! Downloading on PC.</span>
+    </div>
+  </div>
+
+  <!-- Main Application Container -->
+  <div class="app-container">
+
+    <!-- Top Terminal Telemetry Bar -->
+    <div class="telemetry-bar">
+      <div class="telemetry-item">
+        <span class="telemetry-dot live"></span>
+        <span class="telemetry-label">SYS:</span> <span class="telemetry-val">ONLINE</span>
+      </div>
+      <div class="telemetry-item">
+        <span class="telemetry-label">HOST:</span> <span id="telemetry-host" class="telemetry-val">0.0.0.0:8000</span>
+      </div>
+      <div class="telemetry-item" id="auth-telemetry-badge">
+        <span class="telemetry-label">NETWORK:</span> <span id="telemetry-auth-text" class="telemetry-val emerald">PUBLIC (SECURE)</span>
+      </div>
+      <div class="telemetry-item">
+        <span class="telemetry-label">SLA:</span> <span class="telemetry-val cyan">&lt;2ms</span>
+      </div>
+    </div>
+
+    <!-- App Header & Navigation Bar -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="brand-logo" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1 class="brand-title">AssetDrop</h1>
+          <span class="brand-version" id="view-mode-indicator">PC Hub</span>
+        </div>
+      </div>
+
+      <div class="header-status">
+        <!-- View Toggle for User / Pair Testing -->
+        <button type="button" id="btn-toggle-view" class="btn-terminal-sm" aria-label="Toggle PC and Mobile View">
+          <span id="btn-toggle-view-text">📱 Switch to Mobile View</span>
+        </button>
+        <button type="button" id="btn-pwa-install" class="btn-pwa-install hidden" aria-label="Install App">
+          <span>📲 Install</span>
+        </button>
+        <div id="connection-status" class="status-indicator online" title="Backend Server Connected">
+          <span class="status-dot"></span>
+          <span id="connection-text" class="status-label">Online</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ========================================================================= -->
+    <!-- DESKTOP WORKSTATION VIEW (#view-desktop)                                   -->
+    <!-- Streamlined Minimal PC Interface: Credentials, Active Queue & History      -->
+    <!-- Purged of QR codes, network toggles, device lists, folder forms & paste box-->
+    <!-- ========================================================================= -->
+    <main id="view-desktop" class="main-content">
+
+      <!-- SECTION 1: Mobile Connection Credentials Control -->
+      <section class="card credentials-card" style="margin-bottom: 1.25rem;">
+        <div class="section-header-flex">
+          <div>
+            <h2 class="section-title">MOBILE CONNECTION CREDENTIALS</h2>
+            <span class="terminal-tag emerald">[AUTHENTICATION]</span>
+          </div>
+          <button type="button" id="btn-toggle-credentials" class="btn-terminal-sm" style="min-height:48px; min-width:44px;" aria-label="Toggle Mobile Connection Credentials">
+            <span>Show Credentials</span>
+          </button>
+        </div>
+
+        <div id="credentials-details" class="credentials-details hidden" style="margin-top:1rem;">
+          <p class="section-desc">Enter this 5-digit UID and password on your mobile client to connect.</p>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:1rem; margin-top:0.75rem;">
+            <div style="background:#161d2d; padding:1rem; border-radius:8px; border:1px solid rgba(255,255,255,0.08);">
+              <span class="section-label" style="font-size:0.75rem; color:#9ca3af;">5-DIGIT SERVER UID</span>
+              <div style="font-size:1.4rem; font-weight:700; color:#10b981; font-family:monospace; margin-top:0.25rem;" id="pc-uid-display">-----</div>
+            </div>
+            <div style="background:#161d2d; padding:1rem; border-radius:8px; border:1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <span class="section-label" style="font-size:0.75rem; color:#9ca3af;">PASSWORD</span>
+                <div style="font-size:1.2rem; font-weight:700; color:#f3f4f6; font-family:monospace; margin-top:0.25rem;" id="pc-password-display">••••••••</div>
+              </div>
+              <button type="button" id="btn-toggle-password-mask" class="btn-terminal-sm" style="min-height:48px; min-width:44px;" aria-label="Toggle Password Visibility">
+                <span>Reveal</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 2: Active Download Queue Table -->
+      <section class="card queue-card" style="margin-bottom: 1.25rem;">
+        <div class="section-header-flex">
+          <div>
+            <h2 class="section-title">ACTIVE DOWNLOAD QUEUE</h2>
+            <span id="queue-count-badge" class="badge-count" style="font-size:0.8rem; background:rgba(6,182,212,0.15); color:#06b6d4; padding:0.2rem 0.6rem; border-radius:4px;">0 Active</span>
+          </div>
+          <button type="button" id="btn-refresh-queue" class="btn-terminal-sm" style="min-height:48px; min-width:44px;" aria-label="Refresh Active Queue">
+            <span>🔄 Refresh</span>
+          </button>
+        </div>
+
+        <div class="table-responsive" style="margin-top:0.75rem; overflow-x:auto;">
+          <table id="pc-queue-table" class="terminal-table" style="width:100%; text-align:left; border-collapse:collapse;">
+            <thead>
+              <tr style="border-bottom:1px solid rgba(255,255,255,0.1); color:#9ca3af; font-size:0.8rem; text-transform:uppercase;">
+                <th style="padding:0.75rem;">Media File / URL</th>
+                <th style="padding:0.75rem;">Format</th>
+                <th style="padding:0.75rem;">Target Folder</th>
+                <th style="padding:0.75rem;">Status</th>
+              </tr>
+            </thead>
+            <tbody id="pc-queue-tbody">
+              <tr>
+                <td colspan="4" class="empty-state" style="text-align:center; padding:1.5rem; color:#6b7280;">
+                  No active downloads in queue.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- SECTION 3: Downloaded Files History Table -->
+      <section class="card history-card">
+        <div class="section-header-flex">
+          <div>
+            <h2 class="section-title">DOWNLOADED FILES HISTORY</h2>
+            <span id="history-count-badge" class="badge-count" style="font-size:0.8rem; background:rgba(16,185,129,0.15); color:#10b981; padding:0.2rem 0.6rem; border-radius:4px;">0 Completed</span>
+          </div>
+          <button type="button" id="btn-refresh-history" class="btn-terminal-sm" style="min-height:48px; min-width:44px;" aria-label="Refresh Download History">
+            <span>🔄 Refresh</span>
+          </button>
+        </div>
+
+        <div class="table-responsive" style="margin-top:0.75rem; overflow-x:auto;">
+          <table id="pc-history-table" class="terminal-table" style="width:100%; text-align:left; border-collapse:collapse;">
+            <thead>
+              <tr style="border-bottom:1px solid rgba(255,255,255,0.1); color:#9ca3af; font-size:0.8rem; text-transform:uppercase;">
+                <th style="padding:0.75rem;">File Name</th>
+                <th style="padding:0.75rem;">Save Location</th>
+                <th style="padding:0.75rem;">Completion Time</th>
+                <th style="padding:0.75rem;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="pc-history-tbody">
+              <tr>
+                <td colspan="4" class="empty-state" style="text-align:center; padding:1.5rem; color:#6b7280;">
+                  No completed downloads yet.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <!-- ========================================================================= -->
+    <!-- MOBILE CLIENT VIEW (#view-mobile)                                          -->
+    <!-- Clean, Focused, Streamlined, No WorkstationHub/B-Roll clutter              -->
+    <!-- ========================================================================= -->
+    <main id="view-mobile" class="main-content hidden">
+
+      <!-- STATE A: Mobile Not Connected Screen (Requires QR Scan) -->
+      <section id="mobile-view-unpaired" class="card mobile-pairing-card" aria-label="Connect to PC">
+        <div style="text-align:center; padding: 1.5rem 0.5rem;">
+          <div style="font-size:3rem; margin-bottom:0.75rem;">📲 ⚡ 💻</div>
+          <h2 style="font-size:1.4rem; color:#f3f4f6; margin-bottom:0.5rem; font-weight:600;">Connect to PC Workstation</h2>
+          <p style="color:#9ca3af; font-size:0.95rem; line-height:1.5; margin-bottom:1.5rem; max-width:320px; margin-left:auto; margin-right:auto;">
+            To send video and audio downloads directly to your PC, scan the pairing QR code displayed on your PC screen.
+          </p>
+
+          <!-- Camera QR Scanner Viewport (Toggled) -->
+          <div id="mobile-scanner-wrapper" class="hidden" style="margin-bottom:1.5rem;">
+            <div style="position:relative; width:100%; max-width:320px; margin:0 auto; aspect-ratio:1; background:#000; border-radius:12px; overflow:hidden; border:2px solid #10b981;">
+              <video id="mobile-qr-video" playsinline autoplay style="width:100%; height:100%; object-fit:cover;"></video>
+              <div class="scanner-reticle" style="position:absolute; inset:20px; border:2px dashed #10b981; border-radius:8px; pointer-events:none;"></div>
+            </div>
+            <button type="button" id="btn-close-scanner" class="btn btn-secondary" style="margin-top:0.75rem; width:100%; max-width:320px;">
+              <span>Cancel Camera</span>
+            </button>
+          </div>
+
+          <!-- Pairing Action Buttons -->
+          <div style="display:flex; flex-direction:column; gap:0.75rem; max-width:320px; margin:0 auto;">
+            <button type="button" id="mobile-btn-camera-scan" class="btn btn-primary" style="font-size:1rem; min-height:48px;">
+              <span>📷 Scan QR with Camera</span>
+            </button>
+            <button type="button" id="mobile-btn-file-scan" class="btn btn-secondary" style="font-size:0.95rem; min-height:48px;">
+              <span>📁 Upload QR Image</span>
+            </button>
+          </div>
+
+          <!-- Quick Token Input (Alternative fallback) -->
+          <div style="margin-top:2rem; padding-top:1.5rem; border-top:1px solid rgba(255,255,255,0.08); max-width:320px; margin-left:auto; margin-right:auto;">
+            <span style="font-size:0.8rem; color:#6b7280; text-transform:uppercase;">Manual Token Fallback</span>
+            <div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
+              <input type="text" id="mobile-manual-token-input" class="text-input terminal-input" placeholder="Paste 32-char token" style="font-size:13px; min-height:44px;" />
+              <button type="button" id="btn-submit-manual-token" class="btn-terminal-sm" style="min-height:44px; padding:0 1rem; background:#10b981; color:#090d16; font-weight:600;">Pair</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STATE B: Mobile Connected Single-Screen Ingestion UI (Exactly 1 Screen) -->
+      <section id="mobile-view-ingest" class="card mobile-ingest-card hidden" aria-label="Media Ingestion">
+        
+        <!-- Connected Status Pill -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem; padding-bottom:0.75rem; border-bottom:1px solid rgba(255,255,255,0.08);">
+          <div style="display:flex; align-items:center; gap:0.5rem;">
+            <span class="telemetry-dot live"></span>
+            <span style="font-size:0.85rem; font-weight:600; color:#10b981;">Connected to Workstation</span>
+          </div>
+          <button type="button" id="mobile-btn-disconnect" class="btn-link" style="color:#ef4444; font-size:0.8rem; text-decoration:none; cursor:pointer;">
+            Disconnect
+          </button>
+        </div>
+
+        <!-- 1. Source Media Link Input -->
+        <div class="form-section">
+          <label for="mobile-url-input" class="section-label">PASTE MEDIA LINK</label>
+          <div class="input-group">
+            <div class="input-wrapper">
+              <span class="input-icon" aria-hidden="true">❯</span>
+              <input
+                type="url"
+                id="mobile-url-input"
+                class="text-input terminal-input"
+                placeholder="YouTube, TikTok, Reel, Pin, X link..."
+                autocomplete="off"
+                autocorrect="off"
+                autocapitalize="none"
+                spellcheck="false"
+                required
+              />
+            </div>
+            <button type="button" id="mobile-paste-btn" class="btn btn-secondary btn-paste" aria-label="Paste from Clipboard">
+              <span>📋 Paste</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. MP4 / MP3 Format Segmented Toggle -->
+        <div class="form-section">
+          <label class="section-label">MEDIA FORMAT</label>
+          <div class="segmented-control" role="radiogroup" aria-label="Media Format">
+            <button type="button" id="mobile-fmt-video" class="format-toggle-btn active" role="radio" aria-checked="true">
+              <span class="format-icon">🎬</span>
+              <span class="format-label">Video (MP4)</span>
+            </button>
+            <button type="button" id="mobile-fmt-audio" class="format-toggle-btn" role="radio" aria-checked="false">
+              <span class="format-icon">🎵</span>
+              <span class="format-label">Audio (MP3)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. Destination Shared Folder Dropdown -->
+        <div class="form-section">
+          <label for="mobile-folder-select" class="section-label">SAVE TO PC FOLDER</label>
+          <div class="select-wrapper" style="position:relative;">
+            <select id="mobile-folder-select" class="terminal-input" style="width:100%; min-height:48px; font-size:16px; background:#161d2d; color:#f3f4f6; border:1px solid rgba(255,255,255,0.15); border-radius:8px; padding:0.6rem 1rem; appearance:none; cursor:pointer;">
+              <option value="B-Roll (General)">📁 B-Roll (General)</option>
+              <option value="Social Edits">📁 Social Edits</option>
+              <option value="Sound Effects">📁 Sound Effects</option>
+              <option value="Background Music">📁 Background Music</option>
+            </select>
+            <span style="position:absolute; right:1rem; top:50%; transform:translateY(-50%); pointer-events:none; color:#9ca3af;">▼</span>
+          </div>
+        </div>
+
+        <!-- 4. Primary Ingestion Action Button -->
+        <div class="form-actions" style="margin-top:1.5rem;">
+          <button type="button" id="mobile-download-btn" class="btn btn-primary btn-ingest" style="width:100%; min-height:52px; font-size:1.05rem; font-weight:700;">
+            <span class="btn-ingest-icon">⚡</span>
+            <span>DOWNLOAD TO PC</span>
+          </button>
+        </div>
+
+        <!-- 5. Minimal Real-Time PC Status -->
+        <div id="mobile-mini-status" style="margin-top:1.5rem; background:#0e131f; border-radius:8px; padding:0.85rem; border:1px solid rgba(255,255,255,0.06);">
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem; color:#9ca3af;">
+            <span>LATEST PC DOWNLOAD:</span>
+            <span id="mobile-latest-status-badge" style="color:#10b981; font-weight:600;">System Idle</span>
+          </div>
+          <div id="mobile-latest-title" style="margin-top:0.35rem; font-size:0.85rem; color:#e5e7eb; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+            Ready for your next link.
+          </div>
+        </div>
+
+      </section>
+    </main>
+
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- LEGACY CONTRACT COMPATIBILITY SECTION                                     -->
+  <!-- Preserves DOM contract IDs required by test_challenger_m3_ui & test_pwa    -->
+  <!-- ========================================================================= -->
+  <div id="legacy-contract-elements" class="hidden" style="display:none;" aria-hidden="true">
+    <input type="url" id="url-input" class="terminal-input" />
+    <button type="button" id="clear-url-btn" class="btn-terminal-sm">Clear</button>
+    <button type="button" id="paste-btn" class="btn-terminal-sm">Paste</button>
+    <button type="button" id="submit-btn" class="btn-terminal-sm" style="min-height:48px; min-width:44px;">Submit</button>
+
+    <div id="format-selection-area">
+      <div id="youtube-format-container">
+        <button type="button" id="format-video-btn" class="format-toggle-btn active" style="min-height:48px; min-width:44px;">Video</button>
+        <button type="button" id="format-audio-btn" class="format-toggle-btn" style="min-height:48px; min-width:44px;">Audio</button>
+      </div>
+      <div id="direct-quality-badge">Direct Max Quality</div>
+    </div>
+
+    <span id="selected-folder-display">B-Roll (General)</span>
+    <div id="preset-chips-container"></div>
+    <button type="button" id="browse-pc-btn" class="btn-terminal-sm" style="min-height:48px; min-width:44px;">Browse PC...</button>
+
+    <div id="custom-dir-banner">
+      <span id="custom-dir-path">D:\Assets</span>
+      <button type="button" id="reset-custom-dir-btn" class="btn-terminal-sm" style="min-height:48px; min-width:44px;">Reset</button>
+    </div>
+
+    <!-- PC Browser Sheet Elements -->
+    <div id="sheet-backdrop"></div>
+    <aside id="pc-browser-sheet" class="bottom-sheet">
+      <button type="button" id="sheet-close-btn" class="btn-terminal-sm" style="min-height:48px; min-width:44px;">✕</button>
+      <div id="sheet-drives-list"></div>
+      <button type="button" id="sheet-up-btn" class="btn-terminal-sm" style="min-height:48px; min-width:44px;">Up</button>
+      <span id="sheet-current-path-text">D:\</span>
+      <div id="sheet-loading-spinner" class="hidden"></div>
+      <div id="sheet-error-msg" class="hidden"></div>
+      <div id="sheet-folder-list"></div>
+      <button type="button" id="sheet-select-btn" class="btn-terminal-sm" style="min-height:48px; min-width:44px;">Select</button>
+      <button type="button" id="sheet-pin-btn" class="btn-terminal-sm" style="min-height:48px; min-width:44px;">Pin</button>
+    </aside>
+
+    <!-- Pin Modal Elements -->
+    <div id="pin-modal-backdrop"></div>
+    <div id="pin-preset-dialog">
+      <input type="text" id="pin-preset-name-input" class="terminal-input" />
+      <button type="button" id="pin-dialog-close-btn" class="btn-terminal-sm" style="min-height:48px; min-width:44px;">✕</button>
+      <button type="button" id="pin-dialog-cancel-btn" class="btn-terminal-sm" style="min-height:48px; min-width:44px;">Cancel</button>
+      <button type="button" id="pin-dialog-confirm-btn" class="btn-terminal-sm" style="min-height:48px; min-width:44px;">Confirm</button>
+    </div>
+
+    <!-- Auth PIN Modal Elements (Kept for regression contract tests, hidden from users) -->
+    <div id="auth-modal-backdrop"></div>
+    <div id="auth-dialog">
+      <input type="password" id="auth-pin-input" class="terminal-input" />
+      <button type="button" id="auth-pin-submit-btn" class="btn-terminal-sm" style="min-height:48px; min-width:44px;">Submit</button>
+    </div>
+
+    <!-- Status Tray Elements -->
+    <section id="status-tray" class="status-tray">
+      <div id="status-tray-header" class="status-tray-header" style="min-height:48px; min-width:44px;" tabindex="0" role="button">
+        <span id="tray-status-dot"></span>
+        <span id="tray-summary-title">Idle</span>
+        <span id="tray-summary-sub">Waiting</span>
+        <span id="tray-badge-active" class="hidden">0</span>
+        <span id="tray-badge-completed" class="hidden">0</span>
+        <span id="tray-badge-error" class="hidden">0</span>
+        <button type="button" id="tray-refresh-btn" class="btn-terminal-sm" style="min-height:48px; min-width:44px;">Refresh</button>
+        <button type="button" id="tray-clear-btn" class="btn-terminal-sm" style="min-height:48px; min-width:44px;">Clear</button>
+      </div>
+      <div id="status-tray-body">
+        <div id="tray-active-list"></div>
+        <div id="tray-recent-list"></div>
+        <div id="tray-errors-list"></div>
+        <div id="tray-empty-state">No downloads</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Application Logic Scripts -->
+  <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="description" content="AssetDrop PC Workstation — Minimal Dashboard">
+  <meta name="theme-color" content="#09090b">
+  <title>AssetDrop Workstation // PC Hub</title>
+  <link rel="stylesheet" href="/static/pc.css">
+  <link rel="icon" type="image/svg+xml" href="/static/icons/icon.svg">
+  <link rel="shortcut icon" href="/favicon.ico">
+</head>
+<body>
+
+  <!-- Top Toast Notification System -->
+  <div id="pc-toast" class="pc-toast hidden" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="pc-toast-content">
+      <span id="pc-toast-icon" class="pc-toast-icon">✓</span>
+      <span id="pc-toast-message" class="pc-toast-message">Notification</span>
+    </div>
+  </div>
+
+  <div class="pc-container">
+
+    <!-- Top Telemetry & Status Bar -->
+    <header class="pc-header">
+      <div class="brand-group">
+        <div class="brand-icon" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">AssetDrop Workstation</h1>
+          <span class="brand-badge">Desktop Host</span>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <div id="connection-indicator" class="status-pill online">
+          <span class="status-dot"></span>
+          <span id="connection-status-text">Online</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- SECTION 1: Mobile Connection Credentials Control -->
+    <section class="card credentials-card" aria-label="Mobile Connection Credentials">
+      <div class="card-header">
+        <div class="card-title-group">
+          <h2 class="card-title">MOBILE CONNECTION CREDENTIALS</h2>
+          <span class="tag-badge emerald">AUTHENTICATION</span>
+        </div>
+        <button type="button" id="btn-toggle-credentials" class="btn btn-secondary" aria-expanded="false" aria-controls="credentials-details">
+          <span>Show Credentials</span>
+        </button>
+      </div>
+
+      <div id="credentials-details" class="credentials-details hidden">
+        <p class="section-desc">Enter this 5-digit UID and password on your mobile client to connect.</p>
+        <div class="credentials-grid">
+          <div class="cred-box">
+            <span class="cred-label">5-DIGIT SERVER UID</span>
+            <div class="cred-value-row">
+              <span id="pc-uid-display" class="cred-val highlight">-----</span>
+            </div>
+          </div>
+          <div class="cred-box">
+            <span class="cred-label">STARTUP PASSWORD</span>
+            <div class="cred-value-row">
+              <span id="pc-password-display" class="cred-val monospace">••••••••</span>
+              <button type="button" id="btn-toggle-password-mask" class="btn btn-action" aria-label="Toggle Password Visibility">
+                <span>Reveal</span>
+              </button>
+            </div>
+          </div>
+          <div class="cred-box">
+            <span class="cred-label">WORKSTATION LAN URL</span>
+            <div class="cred-value-row">
+              <span id="pc-connection-url" class="cred-val subtle">http://127.0.0.1:8000</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: Active Download Queue Table -->
+    <section class="card queue-card" aria-label="Active Download Queue">
+      <div class="card-header">
+        <div class="card-title-group">
+          <h2 class="card-title">ACTIVE DOWNLOAD QUEUE</h2>
+          <span id="queue-count-badge" class="count-badge">0 Active</span>
+        </div>
+        <button type="button" id="btn-refresh-queue" class="btn btn-action" aria-label="Refresh Active Queue">
+          <span>🔄 Refresh</span>
+        </button>
+      </div>
+
+      <div class="table-responsive">
+        <table id="pc-queue-table" class="data-table">
+          <thead>
+            <tr>
+              <th scope="col" style="width: 40%;">Media File / URL</th>
+              <th scope="col" style="width: 15%;">Format</th>
+              <th scope="col" style="width: 25%;">Target Folder</th>
+              <th scope="col" style="width: 20%;">Status</th>
+            </tr>
+          </thead>
+          <tbody id="pc-queue-tbody">
+            <tr class="empty-row">
+              <td colspan="4" class="empty-state">No active downloads in queue.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SECTION 3: Downloaded Files History Table -->
+    <section class="card history-card" aria-label="Downloaded Files History">
+      <div class="card-header">
+        <div class="card-title-group">
+          <h2 class="card-title">DOWNLOADED FILES HISTORY</h2>
+          <span id="history-count-badge" class="count-badge emerald">0 Completed</span>
+        </div>
+        <button type="button" id="btn-refresh-history" class="btn btn-action" aria-label="Refresh Download History">
+          <span>🔄 Refresh</span>
+        </button>
+      </div>
+
+      <div class="table-responsive">
+        <table id="pc-history-table" class="data-table">
+          <thead>
+            <tr>
+              <th scope="col" style="width: 35%;">File Name</th>
+              <th scope="col" style="width: 28%;">Save Location</th>
+              <th scope="col" style="width: 22%;">Completion Time</th>
+              <th scope="col" style="width: 15%;">Action</th>
+            </tr>
+          </thead>
+          <tbody id="pc-history-tbody">
+            <tr class="empty-row">
+              <td colspan="4" class="empty-state">No completed downloads yet.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </div>
+
+  <script src="/static/pc.js"></script>
+</body>
+</html>

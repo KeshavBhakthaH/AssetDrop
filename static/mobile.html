@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="description" content="AssetDrop Mobile — Dedicated Two-Stage Ingestion Client">
+  <meta name="theme-color" content="#090d16">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#09090b">
+
+  <!-- Standalone Mobile PWA Meta Tags -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="AssetDrop">
+
+  <!-- Icons & Manifest -->
+  <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/svg+xml" href="/static/icons/icon.svg">
+  <link rel="shortcut icon" href="/favicon.ico">
+
+  <title>AssetDrop // Mobile Client</title>
+  <link rel="stylesheet" href="/static/mobile.css?v=3.1">
+</head>
+<body>
+
+  <!-- Top Instant Toast Notification System (<50ms SLA) -->
+  <div id="toast" class="toast hidden" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="toast-content">
+      <span id="toast-icon" class="toast-icon">✓</span>
+      <span id="toast-message" class="toast-message">Queued! Downloading on PC.</span>
+    </div>
+  </div>
+
+  <!-- Mobile View Container -->
+  <main id="view-mobile" class="mobile-container">
+
+    <!-- App Header & Brand -->
+    <header class="mobile-header">
+      <div class="brand-group">
+        <div class="brand-icon" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">AssetDrop</h1>
+          <span class="brand-subtitle">Mobile Ingestion Client</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ========================================================================= -->
+    <!-- STAGE 1: Connection Screen (#stage-connection)                           -->
+    <!-- Initial default view when unauthenticated                                  -->
+    <!-- Prompts for 5-digit UID and startup connection password                   -->
+    <!-- ========================================================================= -->
+    <section id="stage-connection" class="mobile-stage mobile-card" aria-label="Connect to PC Workstation">
+      <div class="stage-intro">
+        <div class="intro-badge" aria-hidden="true">📲 ⚡ 💻</div>
+        <h2 class="stage-title">Connect to PC Workstation</h2>
+        <p class="stage-desc">
+          Enter the 5-digit UID and password shown on your PC screen to establish communication.
+        </p>
+      </div>
+
+      <!-- Auth Error Banner -->
+      <div id="mobile-auth-error" class="auth-error-banner hidden" role="alert" aria-live="polite">
+        <span class="error-icon" aria-hidden="true">⚠</span>
+        <span id="mobile-auth-error-text" class="error-text">Invalid UID or password. Please verify credentials on the PC screen.</span>
+      </div>
+
+      <!-- Stage 1 Form -->
+      <form id="mobile-auth-form" class="mobile-form" novalidate>
+        <div class="form-field">
+          <label for="mobile-uid-input" class="field-label">5-DIGIT SERVER UID</label>
+          <input
+            type="text"
+            id="mobile-uid-input"
+            class="field-input monospace-input"
+            inputmode="numeric"
+            pattern="[0-9]{5}"
+            maxlength="5"
+            placeholder="e.g. 54321"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="none"
+            spellcheck="false"
+            required
+            aria-describedby="uid-hint"
+          />
+          <span id="uid-hint" class="field-hint">Check "Show Credentials" on your PC dashboard</span>
+        </div>
+
+        <div class="form-field">
+          <label for="mobile-password-input" class="field-label">PC CONNECTION PASSWORD</label>
+          <input
+            type="password"
+            id="mobile-password-input"
+            class="field-input monospace-input"
+            placeholder="Enter PC password"
+            autocomplete="current-password"
+            autocorrect="off"
+            autocapitalize="none"
+            spellcheck="false"
+            required
+          />
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" id="mobile-btn-connect" class="btn btn-primary btn-block">
+            <span>⚡ Connect to PC</span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- STAGE 2: Clean Download Form (#stage-download)                            -->
+    <!-- Main ingestion view after successful authentication                        -->
+    <!-- Strictly contains: URL + Paste, MP3/MP4, PC folder dropdown, Download btn  -->
+    <!-- ========================================================================= -->
+    <section id="stage-download" class="mobile-stage mobile-card hidden" aria-label="Media Ingestion">
+      
+      <!-- Stage 2 Header with Connection Status Pill & Disconnect Control -->
+      <div class="stage-nav">
+        <div id="mobile-connection-badge" class="connection-badge">
+          <span class="status-dot live"></span>
+          <span id="mobile-connected-text">Connected to PC</span>
+        </div>
+        <button type="button" id="mobile-btn-disconnect" class="btn btn-disconnect" aria-label="Disconnect from PC">
+          <span>Disconnect</span>
+        </button>
+      </div>
+
+      <!-- Stage 2 Form -->
+      <form id="mobile-download-form" class="mobile-form">
+
+        <!-- 1. Media URL input with integrated Search button (Paste removed from UI) -->
+        <div class="form-field">
+          <label for="mobile-url-input" class="field-label">MEDIA URL</label>
+          <div class="input-with-action">
+            <input
+              type="url"
+              id="mobile-url-input"
+              class="field-input"
+              placeholder="Paste YouTube, TikTok, Reel link..."
+              autocomplete="off"
+              autocorrect="off"
+              autocapitalize="none"
+              spellcheck="false"
+              required
+            />
+            <!-- Preserved for contract tests but hidden from mobile UI -->
+            <button type="button" id="mobile-btn-paste" class="btn btn-action btn-paste hidden" style="display: none !important;" aria-hidden="true" tabindex="-1">
+              <span>📋 Paste</span>
+            </button>
+            <button
+              type="button"
+              id="mobile-btn-search"
+              class="btn btn-action btn-search"
+              onclick="window.handleMediaSearch && window.handleMediaSearch(event)"
+              aria-label="Search / Inspect Media Link"
+            >
+              <span id="search-btn-icon">🔍</span>
+              <span id="search-btn-text">Search</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Minimal Media Thumbnail Preview Card (Shows after pasting / clicking Search) -->
+        <div id="media-preview-card" class="media-preview-card hidden">
+          <div class="preview-thumb-container">
+            <img id="preview-thumbnail-img" src="" alt="Thumbnail preview" class="preview-thumbnail" />
+            <div id="preview-fallback-icon" class="preview-fallback-icon hidden">🎬</div>
+            <span id="preview-platform-badge" class="preview-platform-badge">YouTube</span>
+          </div>
+          <div class="preview-details">
+            <h4 id="preview-title" class="preview-title">Media Title</h4>
+            <span id="preview-status" class="preview-status">✓ Ready to download</span>
+          </div>
+        </div>
+
+        <!-- 2. MP3 vs MP4 format selector (Only displayed for YouTube media) -->
+        <div class="form-field hidden" id="format-selection-field">
+          <div class="field-label-row">
+            <label class="field-label">MEDIA FORMAT</label>
+            <span class="field-sublabel">YouTube MP3 / MP4 Option</span>
+          </div>
+          <div class="segmented-control" role="radiogroup" aria-label="Media Format">
+            <button
+              type="button"
+              id="mobile-fmt-video"
+              class="segment-btn active"
+              role="radio"
+              aria-checked="true"
+              data-format="video"
+            >
+              <span class="segment-icon">🎬</span>
+              <span class="segment-label">Video (MP4)</span>
+            </button>
+            <button
+              type="button"
+              id="mobile-fmt-audio"
+              class="segment-btn"
+              role="radio"
+              aria-checked="false"
+              data-format="audio"
+            >
+              <span class="segment-icon">🎵</span>
+              <span class="segment-label">Audio (MP3)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. Destination Folder Selector (Opens Mobile Folder Modal) -->
+        <div class="form-field">
+          <div class="field-label-row">
+            <label class="field-label">SAVE TO PC FOLDER</label>
+            <span class="field-sublabel" id="mobile-folder-hint">Tap to change</span>
+          </div>
+          
+          <div
+            id="mobile-folder-trigger"
+            class="folder-select-trigger"
+            role="button"
+            tabindex="0"
+            aria-label="Choose destination folder on PC"
+          >
+            <div class="folder-trigger-left">
+              <span class="folder-trigger-icon">📁</span>
+              <div class="folder-trigger-text">
+                <span id="trigger-folder-name" class="trigger-folder-title">Loading PC folders...</span>
+                <span id="trigger-folder-sub" class="trigger-folder-subpath">Root Folder</span>
+              </div>
+            </div>
+            <span class="folder-trigger-arrow">▾</span>
+          </div>
+
+          <!-- Preserved in DOM for contract tests and validation -->
+          <select id="mobile-folder-select" class="field-select visually-hidden-select" aria-hidden="true" tabindex="-1">
+            <option value="" disabled selected>Loading PC folders...</option>
+          </select>
+        </div>
+
+        <!-- 4. Primary Ingestion Action Button -->
+        <div class="form-actions" style="margin-top: 1.5rem;">
+          <button type="submit" id="mobile-btn-download" class="btn btn-primary btn-download btn-block">
+            <span class="btn-icon">⚡</span>
+            <span>DOWNLOAD TO PC</span>
+          </button>
+        </div>
+
+      </form>
+    </section>
+
+    <!-- Queued to Download Pop-up Modal -->
+    <div id="queued-modal" class="queued-modal hidden" role="dialog" aria-modal="true" aria-labelledby="queued-modal-title">
+      <div class="queued-modal-backdrop" id="queued-modal-backdrop"></div>
+      <div class="queued-modal-card">
+        <div class="queued-modal-icon">⚡</div>
+        <h3 id="queued-modal-title" class="queued-modal-title">Queued to download</h3>
+        <p id="queued-modal-desc" class="queued-modal-desc">
+          Your media download has been queued on your PC.
+        </p>
+        <div class="queued-modal-meta">
+          <div class="modal-meta-row">
+            <span class="modal-meta-label">Destination Folder</span>
+            <span id="modal-folder-name" class="modal-meta-val">B-Roll (General)</span>
+          </div>
+          <div class="modal-meta-row" id="modal-format-row">
+            <span class="modal-meta-label">Format</span>
+            <span id="modal-format-val" class="modal-meta-val">Video (MP4)</span>
+          </div>
+        </div>
+        <button type="button" id="btn-close-modal" class="btn btn-primary btn-block">
+          <span>✓ OK</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Dedicated Mobile Folder Picker & Creation Modal (Tasks 2 & 3) -->
+    <div id="folder-picker-modal" class="folder-picker-modal hidden" role="dialog" aria-modal="true" aria-labelledby="folder-picker-title">
+      <div class="folder-picker-backdrop" id="folder-picker-backdrop"></div>
+      <div class="folder-picker-sheet">
+        
+        <!-- Header -->
+        <div class="folder-sheet-header">
+          <div class="folder-sheet-title-group">
+            <span class="folder-sheet-badge">DESTINATION PICKER</span>
+            <h3 id="folder-picker-title" class="folder-sheet-title">Select PC Folder</h3>
+          </div>
+          <button type="button" id="btn-close-folder-picker" class="btn-sheet-close" aria-label="Close Folder Picker">✕</button>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="folder-search-wrapper">
+          <span class="folder-search-icon">🔍</span>
+          <input
+            type="search"
+            id="folder-search-input"
+            class="folder-search-field"
+            placeholder="Search all folders or subfolders..."
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="none"
+            spellcheck="false"
+          />
+          <button type="button" id="btn-clear-folder-search" class="btn-clear-search hidden" aria-label="Clear search">✕</button>
+        </div>
+
+        <!-- Hierarchical Big Folder Banner (Reference illustration) -->
+        <div class="explorer-banner" id="explorer-banner">
+          <div class="explorer-banner-content">
+            <span class="explorer-banner-badge" id="explorer-banner-badge">CURRENT FOLDER</span>
+            <h2 id="explorer-current-title" class="explorer-current-title">WORK</h2>
+          </div>
+          <button type="button" id="btn-choose-current-folder" class="btn-choose-current" title="Select current folder as destination">
+            <span>✓ Select Folder</span>
+          </button>
+        </div>
+
+        <!-- Breadcrumbs Navigation Bar (e.g. works > TKP) -->
+        <div class="explorer-breadcrumbs-bar" id="explorer-breadcrumbs-bar">
+          <div id="explorer-breadcrumbs" class="explorer-breadcrumbs" role="navigation" aria-label="Folder Path">
+            <!-- Injected breadcrumbs: Home > WORK > TKP -->
+          </div>
+          <button type="button" id="btn-nav-up" class="btn-nav-up hidden" title="Go up one folder level">
+            <span>⬆ Up</span>
+          </button>
+        </div>
+
+        <!-- Action Toolbar: [+ new] [sort] (Reference illustration) -->
+        <div class="explorer-action-toolbar">
+          <button type="button" id="btn-toggle-new-folder" class="toolbar-btn btn-new-folder">
+            <span class="toolbar-icon">➕</span>
+            <span id="btn-create-toggle-text">New Folder</span>
+          </button>
+          <button type="button" id="btn-toggle-sort" class="toolbar-btn btn-sort-folder">
+            <span class="toolbar-icon">↕</span>
+            <span id="btn-sort-toggle-text">Sort: A-Z</span>
+          </button>
+        </div>
+
+        <!-- Inline Create New Folder Form (Task 3: Inside focused folder) -->
+        <div id="folder-create-form" class="folder-create-form hidden">
+          <div class="create-form-header">
+            <span class="create-in-text">Creating new folder inside: <strong id="new-folder-parent-label">WORK</strong></span>
+          </div>
+          <div class="create-form-input-row">
+            <input
+              type="text"
+              id="new-folder-name-input"
+              class="create-folder-input"
+              placeholder="New folder name..."
+              maxlength="64"
+              autocomplete="off"
+            />
+            <button type="button" id="btn-confirm-create-folder" class="btn btn-primary btn-sm">
+              <span>Create</span>
+            </button>
+            <button type="button" id="btn-cancel-create-folder" class="btn btn-secondary btn-sm">
+              <span>✕</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Scrollable Folder List -->
+        <div class="folder-sheet-scroll">
+          <div id="folder-picker-list" class="folder-picker-list">
+            <!-- Dynamically populated with immediate children or search results -->
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="folder-sheet-footer">
+          <div class="folder-selection-preview">
+            <span class="preview-label">Active Destination:</span>
+            <span id="folder-modal-selected-text" class="preview-value">WORK</span>
+          </div>
+          <button type="button" id="btn-confirm-folder-modal" class="btn btn-primary btn-block">
+            <span>✓ Confirm Destination</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <script src="/static/mobile.js?v=3.1"></script>
+</body>
+</html>

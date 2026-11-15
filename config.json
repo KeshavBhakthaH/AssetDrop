@@ -1,0 +1,10 @@
+{
+  "host": "0.0.0.0",
+  "port": 8000,
+  "workstation_id": "Keshav",
+  "presets": {
+    "WORK": "D:\\WORK"
+  },
+  "history_limit": 100,
+  "connection_password": "344421d1"
+}
