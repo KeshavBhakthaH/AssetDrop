@@ -16,6 +16,15 @@
     "multimedia",
     "productivity"
   ],
+  "share_target": {
+    "action": "/mobile",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
   "icons": [
     {
       "src": "/static/icons/icon-192.png",

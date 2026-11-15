@@ -1500,6 +1500,22 @@ async def serve_favicon():
     return Response(status_code=204)
 
 
+@app.get("/download/apk", include_in_schema=False)
+@app.get("/app.apk", include_in_schema=False)
+async def download_mobile_apk():
+    """Serves the standalone native Android APK package directly to mobile devices."""
+    apk_file = os.path.join(STATIC_DIR, "AssetDrop-mobile.apk")
+    if os.path.isfile(apk_file):
+        return FileResponse(
+            apk_file,
+            media_type="application/vnd.android.package-archive",
+            filename="AssetDrop-mobile.apk",
+            headers={"Content-Disposition": 'attachment; filename="AssetDrop-mobile.apk"'}
+        )
+    raise HTTPException(status_code=404, detail="APK build not found")
+
+
+
 # Mount static assets directory
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 

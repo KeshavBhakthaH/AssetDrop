@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">AssetDrop</string>
+    <string name="title_activity_main">AssetDrop</string>
+    <string name="package_name">com.assetdrop.app</string>
+    <string name="custom_url_scheme">com.assetdrop.app</string>
+</resources>

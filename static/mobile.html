@@ -74,6 +74,21 @@
 
       <!-- Stage 1 Form -->
       <form id="mobile-auth-form" class="mobile-form" novalidate>
+        <div class="form-field" id="mobile-host-field">
+          <label for="mobile-host-input" class="field-label">PC IP / SERVER ADDRESS</label>
+          <input
+            type="text"
+            id="mobile-host-input"
+            class="field-input monospace-input"
+            placeholder="e.g. 192.168.1.100:8000"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="none"
+            spellcheck="false"
+          />
+          <span class="field-hint">IP & port shown in PC Settings</span>
+        </div>
+
         <div class="form-field">
           <label for="mobile-uid-input" class="field-label">5-DIGIT SERVER UID</label>
           <input
@@ -113,6 +128,16 @@
           <button type="submit" id="mobile-btn-connect" class="btn btn-primary btn-block">
             <span>⚡ Connect to PC</span>
           </button>
+        </div>
+
+        <!-- App Installation & Download Section -->
+        <div class="mobile-app-links-card">
+          <button type="button" id="mobile-btn-install-app" class="btn-app-link hidden">
+            <span>📲 Install App (PWA)</span>
+          </button>
+          <a href="/download/apk" class="btn-app-link" download="AssetDrop-mobile.apk">
+            <span>⬇️ Download Android App (.apk • 3.8 MB)</span>
+          </a>
         </div>
       </form>
     </section>

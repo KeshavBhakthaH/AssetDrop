@@ -52,3 +52,22 @@ desktop.ini
 
 # Local SSL certs
 certs/
+
+# Node & Frontend dependencies
+node_modules/
+mobile/node_modules/
+package-lock.json
+mobile/package-lock.json
+
+# Android / Gradle build artifacts & secrets
+.gradle/
+**/build/
+mobile/android/local.properties
+mobile/android/.gradle/
+mobile/android/app/build/
+mobile/android/capacitor-cordova-android-plugins/build/
+*.apk
+!static/AssetDrop-mobile.apk
+!AssetDrop-mobile.apk
+mobile/www/*.apk
+mobile/www/static/*.apk

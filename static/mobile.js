@@ -13,6 +13,31 @@
   const TOKEN_STORAGE_KEY = 'assetdrop_auth_token';
   const UID_STORAGE_KEY = 'assetdrop_server_uid';
   const PW_STORAGE_KEY = 'assetdrop_server_password';
+  const HOST_STORAGE_KEY = 'assetdrop_server_host';
+
+  function getServerBaseUrl() {
+    let host = '';
+    try {
+      host = localStorage.getItem(HOST_STORAGE_KEY) || getCookie(HOST_STORAGE_KEY) || '';
+    } catch (_) {}
+    if (host && host.trim()) {
+      let h = host.trim();
+      if (!/^https?:\/\//i.test(h)) {
+        h = 'http://' + h;
+      }
+      return h.replace(/\/+$/, '');
+    }
+    if (window.location.protocol.startsWith('http') && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      return window.location.origin;
+    }
+    return '';
+  }
+
+  function getApiUrl(path) {
+    const base = getServerBaseUrl();
+    const cleanPath = path.startsWith('/') ? path : '/' + path;
+    return base ? `${base}${cleanPath}` : cleanPath;
+  }
 
   // Cookie Persistence Helpers
   function setCookie(name, value, days = 365) {
@@ -86,9 +111,11 @@
 
     // Stage 1 Auth
     authForm: document.getElementById('mobile-auth-form'),
+    hostInput: document.getElementById('mobile-host-input'),
     uidInput: document.getElementById('mobile-uid-input'),
     passwordInput: document.getElementById('mobile-password-input'),
     btnConnect: document.getElementById('mobile-btn-connect'),
+    btnInstallApp: document.getElementById('mobile-btn-install-app'),
     authError: document.getElementById('mobile-auth-error'),
     authErrorText: document.getElementById('mobile-auth-error-text'),
 
@@ -220,6 +247,14 @@
     e.preventDefault();
     hideAuthError();
 
+    const host = (elements.hostInput ? elements.hostInput.value : '').trim();
+    if (host) {
+      try {
+        localStorage.setItem(HOST_STORAGE_KEY, host);
+        setCookie(HOST_STORAGE_KEY, host);
+      } catch (_) {}
+    }
+
     const uid = (elements.uidInput ? elements.uidInput.value : '').trim();
     const password = (elements.passwordInput ? elements.passwordInput.value : '').trim();
 
@@ -240,7 +275,7 @@
     }
 
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch(getApiUrl('/api/auth/login'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -303,7 +338,7 @@
 
     // Fire non-blocking logout revocation to server
     if (token) {
-      fetch('/api/auth/logout', {
+      fetch(getApiUrl('/api/auth/logout'), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -433,13 +468,13 @@
       const authToken = token || state.token;
       const headers = authToken ? { 'Authorization': `Bearer ${authToken}` } : {};
 
-      let response = await fetch('/api/shared-folders', { headers });
+      let response = await fetch(getApiUrl('/api/shared-folders'), { headers });
       if (response.status === 401) {
         handleDisconnect();
         return;
       }
       if (!response.ok) {
-        response = await fetch('/api/folders', { headers });
+        response = await fetch(getApiUrl('/api/folders'), { headers });
       }
 
       if (response.ok) {
@@ -669,7 +704,7 @@
         headers['Authorization'] = `Bearer ${state.token}`;
       }
 
-      const resp = await fetch('/api/folders/create', {
+      const resp = await fetch(getApiUrl('/api/folders/create'), {
         method: 'POST',
         headers,
         body: JSON.stringify({ parent, name }),
@@ -1214,7 +1249,7 @@
     }
 
     try {
-      const resp = await fetch('/api/media/inspect', {
+      const resp = await fetch(getApiUrl('/api/media/inspect'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1355,7 +1390,7 @@
     }
 
     try {
-      const response = await fetch('/api/queue', {
+      const response = await fetch(getApiUrl('/api/queue'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1396,6 +1431,16 @@
     let savedUid = cached.uid;
     let savedPw = cached.password;
 
+    // Pre-fill host input
+    const savedHost = localStorage.getItem(HOST_STORAGE_KEY) || getCookie(HOST_STORAGE_KEY);
+    if (elements.hostInput) {
+      if (savedHost) {
+        elements.hostInput.value = savedHost;
+      } else if (window.location.protocol.startsWith('http') && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        elements.hostInput.value = window.location.host;
+      }
+    }
+
     // Pre-fill inputs in case connection screen is shown
     if (savedUid && elements.uidInput) elements.uidInput.value = savedUid;
     if (savedPw && elements.passwordInput) elements.passwordInput.value = savedPw;
@@ -1403,7 +1448,7 @@
     // 1. If we have a saved token, check if it is still valid
     if (savedToken) {
       try {
-        const response = await fetch('/api/shared-folders', {
+        const response = await fetch(getApiUrl('/api/shared-folders'), {
           headers: {
             'Authorization': `Bearer ${savedToken}`,
           },
@@ -1424,7 +1469,7 @@
     // Perform seamless silent background auto-login with cached credentials!
     if (savedUid && savedPw) {
       try {
-        const response = await fetch('/api/auth/login', {
+        const response = await fetch(getApiUrl('/api/auth/login'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1632,6 +1677,60 @@
     if (elements.uidInput) {
       elements.uidInput.addEventListener('input', (e) => {
         e.target.value = e.target.value.replace(/[^0-9]/g, '').slice(0, 5);
+      });
+    }
+
+    // -------------------------------------------------------------------------
+    // Native Android Share Sheet & PWA Web Share Target Handler
+    // -------------------------------------------------------------------------
+    window.handleSharedUrl = function(rawText) {
+      if (!rawText) return;
+      const clean = extractCleanUrl(rawText);
+      if (clean && elements.urlInput) {
+        elements.urlInput.value = clean;
+        updateFormatVisibility(clean);
+        inspectMediaUrl(clean);
+        showToast('🔗 Shared media link detected!', 'success', 2500);
+      }
+    };
+
+    // Check query parameters on load (?url=... or ?text=... from PWA share_target)
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const sharedParam = urlParams.get('url') || urlParams.get('text');
+      if (sharedParam) {
+        window.handleSharedUrl(sharedParam);
+      }
+    } catch (_) {}
+
+    // Process any pending initial share intent from native Android wrapper
+    if (window.__INITIAL_SHARED_URL) {
+      window.handleSharedUrl(window.__INITIAL_SHARED_URL);
+      delete window.__INITIAL_SHARED_URL;
+    }
+
+    // PWA Install Prompt handling
+    let deferredInstallPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      if (elements.btnInstallApp) {
+        elements.btnInstallApp.classList.remove('hidden');
+      }
+    });
+
+    if (elements.btnInstallApp) {
+      elements.btnInstallApp.addEventListener('click', async () => {
+        if (deferredInstallPrompt) {
+          deferredInstallPrompt.prompt();
+          const { outcome } = await deferredInstallPrompt.userChoice;
+          if (outcome === 'accepted') {
+            elements.btnInstallApp.classList.add('hidden');
+          }
+          deferredInstallPrompt = null;
+        } else {
+          alert('To install on your phone:\n• Safari (iOS): Tap Share -> "Add to Home Screen"\n• Chrome (Android): Tap menu (⋮) -> "Install App" or "Add to Home Screen"');
+        }
       });
     }
   }

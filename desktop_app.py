@@ -30,6 +30,24 @@ SERVER_PORT = 8000
 SERVER_HOST = "0.0.0.0"
 
 
+def check_single_instance() -> bool:
+    """Ensures only one desktop app instance runs. Brings existing window to front if running."""
+    try:
+        import ctypes
+        kernel32 = ctypes.windll.kernel32
+        user32 = ctypes.windll.user32
+        kernel32.CreateMutexW(None, True, "AssetDrop_Desktop_SingleInstance_Mutex")
+        if kernel32.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
+            hwnd = user32.FindWindowW(None, "AssetDrop // Workstation Engine")
+            if hwnd:
+                user32.ShowWindow(hwnd, 9)  # SW_RESTORE
+                user32.SetForegroundWindow(hwnd)
+            return False
+    except Exception:
+        pass
+    return True
+
+
 def get_local_lan_ip() -> str:
     """Discovers local Wi-Fi / LAN IPv4 address."""
     try:
@@ -74,7 +92,7 @@ class AssetDropDesktopApp:
         self.tray_icon: Optional[pystray.Icon] = None
         self.is_running = True
         self.local_ip = get_local_lan_ip()
-        self.url = f"http://127.0.0.1:{SERVER_PORT}"
+        self.url = f"http://127.0.0.1:{SERVER_PORT}/pc"
         self.mobile_url = f"http://{self.local_ip}:{SERVER_PORT}"
 
     def start_background_server(self):
@@ -128,11 +146,19 @@ class AssetDropDesktopApp:
             self.window.restore()
 
     def open_assets_folder(self):
-        """Opens D:/Assets in Windows File Explorer."""
-        assets_dir = Path("D:/Assets")
-        if not assets_dir.exists():
-            os.makedirs(assets_dir, exist_ok=True)
-        os.startfile(assets_dir)
+        """Opens first configured folder or D:/Assets in Windows File Explorer."""
+        try:
+            cfg = load_config()
+            presets = cfg.get("presets", {})
+            target_dir = Path("D:/Assets")
+            if presets:
+                first_path = list(presets.values())[0]
+                target_dir = Path(first_path)
+            if not target_dir.exists():
+                os.makedirs(target_dir, exist_ok=True)
+            os.startfile(target_dir)
+        except Exception as e:
+            print("Failed to open assets folder:", e)
 
     def copy_lan_url(self):
         """Copies the phone connection URL to Windows clipboard."""
@@ -205,6 +231,9 @@ class AssetDropDesktopApp:
 
 
 def main():
+    if not check_single_instance():
+        print("[AssetDrop] Another instance is already active. Brought window to front.")
+        return
     app = AssetDropDesktopApp()
     app.run()
 
