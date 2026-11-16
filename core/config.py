@@ -18,6 +18,7 @@ import threading
 import time
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 from pydantic import BaseModel, Field, field_validator
 
@@ -27,12 +28,26 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONFIG_PATH = os.path.join(PROJECT_ROOT, "config.json")
 _CONFIG_LOCK = threading.Lock()
 
-DEFAULT_PRESETS: Dict[str, str] = {
-    "B-Roll (General)": "D:/Assets/BRoll",
-    "Social Edits": "D:/Assets/Social",
-    "Sound Effects": "D:/Assets/SFX",
-    "Background Music": "D:/Assets/Music",
-}
+def get_default_presets() -> Dict[str, str]:
+    """Dynamically generates default presets matching the host OS and available drives."""
+    if os.path.exists("D:\\"):
+        base = Path("D:/Assets")
+    else:
+        user_home = Path.home()
+        videos_dir = user_home / "Videos"
+        if videos_dir.exists():
+            base = videos_dir / "AssetDrop"
+        else:
+            base = user_home / "Downloads" / "AssetDrop"
+    return {
+        "B-Roll (General)": str((base / "BRoll").as_posix()),
+        "Social Edits": str((base / "Social").as_posix()),
+        "Sound Effects": str((base / "SFX").as_posix()),
+        "Background Music": str((base / "Music").as_posix()),
+    }
+
+
+DEFAULT_PRESETS: Dict[str, str] = get_default_presets()
 
 DEFAULT_AUTH: Dict[str, Any] = {
     "enabled": False,

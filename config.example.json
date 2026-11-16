@@ -1,0 +1,10 @@
+{
+  "host": "0.0.0.0",
+  "port": 8000,
+  "workstation_id": "My-Workstation",
+  "presets": {
+    "Downloads": "C:\\Users\\Public\\Downloads\\AssetDrop"
+  },
+  "history_limit": 100,
+  "connection_password": ""
+}

@@ -50,7 +50,9 @@ desktop.ini
 *.swp
 *.swo
 
-# Local SSL certs
+# Local configuration & secrets
+config.json
+*.zip
 certs/
 
 # Node & Frontend dependencies

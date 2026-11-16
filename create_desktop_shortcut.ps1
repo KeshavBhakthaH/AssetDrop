@@ -1,7 +1,7 @@
 $WshShell = New-Object -ComObject WScript.Shell
 $DesktopPath = [System.Environment]::GetFolderPath('Desktop')
 $ShortcutPath = Join-Path $DesktopPath "AssetDrop.lnk"
-$TargetDir = "D:\AssetDrop"
+$TargetDir = if ($PSScriptRoot) { $PSScriptRoot } else { (Get-Location).Path }
 $TargetPath = Join-Path $TargetDir "AssetDrop.exe"
 $IconPath = Join-Path $TargetDir "static\icons\favicon.ico"
 
