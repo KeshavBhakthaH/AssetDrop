@@ -1530,4 +1530,12 @@ if __name__ == "__main__":
     server_host = cfg.get("host", "0.0.0.0")
     server_port = int(cfg.get("port", 8000))
     logger.info("Starting AssetDrop daemon on http://%s:%d", server_host, server_port)
-    uvicorn.run("server:app", host=server_host, port=server_port, reload=False)
+    server_config = uvicorn.Config(
+        app=app,
+        host=server_host,
+        port=server_port,
+        log_level="info",
+        access_log=False,
+    )
+    server = uvicorn.Server(server_config)
+    server.run()
