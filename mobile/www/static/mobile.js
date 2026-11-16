@@ -15,22 +15,52 @@
   const PW_STORAGE_KEY = 'assetdrop_server_password';
   const HOST_STORAGE_KEY = 'assetdrop_server_host';
 
+  function isNativeApp() {
+    return (
+      window.Capacitor !== undefined ||
+      window.location.protocol === 'file:' ||
+      window.location.protocol === 'capacitor:' ||
+      (window.location.hostname === 'localhost' && window.location.port !== '8000') ||
+      (window.location.hostname === '127.0.0.1' && window.location.port !== '8000')
+    );
+  }
+
+  function normalizeServerUrl(raw) {
+    if (!raw) return '';
+    let val = raw.trim();
+    if (!val) return '';
+    val = val.replace(/\/+$/, '');
+    if (!/^https?:\/\//i.test(val)) {
+      val = 'http://' + val;
+    }
+    try {
+      const u = new URL(val);
+      if (!u.port) {
+        u.port = '8000';
+      }
+      return `${u.protocol}//${u.hostname}:${u.port}`;
+    } catch (_) {
+      val = val.replace(/^https?:\/\//i, '');
+      val = val.split('/')[0];
+      if (!val.includes(':')) {
+        val = val + ':8000';
+      }
+      return 'http://' + val;
+    }
+  }
+
   function getServerBaseUrl() {
+    if (!isNativeApp()) {
+      return '';
+    }
     let host = '';
     try {
       host = localStorage.getItem(HOST_STORAGE_KEY) || getCookie(HOST_STORAGE_KEY) || '';
     } catch (_) {}
     if (host && host.trim()) {
-      let h = host.trim();
-      if (!/^https?:\/\//i.test(h)) {
-        h = 'http://' + h;
-      }
-      return h.replace(/\/+$/, '');
+      return normalizeServerUrl(host);
     }
-    if (window.location.protocol.startsWith('http') && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-      return window.location.origin;
-    }
-    return '';
+    return 'http://192.168.220.38:8000';
   }
 
   function getApiUrl(path) {
@@ -111,6 +141,7 @@
 
     // Stage 1 Auth
     authForm: document.getElementById('mobile-auth-form'),
+    hostField: document.getElementById('mobile-host-field'),
     hostInput: document.getElementById('mobile-host-input'),
     uidInput: document.getElementById('mobile-uid-input'),
     passwordInput: document.getElementById('mobile-password-input'),
@@ -247,11 +278,12 @@
     e.preventDefault();
     hideAuthError();
 
-    const host = (elements.hostInput ? elements.hostInput.value : '').trim();
-    if (host) {
+    if (isNativeApp()) {
+      const rawHost = (elements.hostInput ? elements.hostInput.value : '').trim();
+      const normalizedHost = normalizeServerUrl(rawHost || '192.168.220.38:8000');
       try {
-        localStorage.setItem(HOST_STORAGE_KEY, host);
-        setCookie(HOST_STORAGE_KEY, host);
+        localStorage.setItem(HOST_STORAGE_KEY, normalizedHost);
+        setCookie(HOST_STORAGE_KEY, normalizedHost);
       } catch (_) {}
     }
 
@@ -274,8 +306,10 @@
       elements.btnConnect.innerHTML = '<span>⏳ Connecting...</span>';
     }
 
+    const apiUrl = getApiUrl('/api/auth/login');
+
     try {
-      const response = await fetch(getApiUrl('/api/auth/login'), {
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -306,7 +340,8 @@
         showAuthError(errJson.detail || `Server error (${response.status}). Please check PC connection.`);
       }
     } catch (err) {
-      showAuthError('Network error connecting to PC. Verify phone and PC are on the same Wi-Fi network.');
+      const targetHint = isNativeApp() ? ` (Target: ${getServerBaseUrl()})` : '';
+      showAuthError(`Network error connecting to PC${targetHint}. Verify your phone is on Wi-Fi 'Keralavision-5G' and port 8000 is reachable.`);
     } finally {
       if (elements.btnConnect) {
         elements.btnConnect.disabled = false;
@@ -1431,13 +1466,20 @@
     let savedUid = cached.uid;
     let savedPw = cached.password;
 
-    // Pre-fill host input
-    const savedHost = localStorage.getItem(HOST_STORAGE_KEY) || getCookie(HOST_STORAGE_KEY);
-    if (elements.hostInput) {
-      if (savedHost) {
-        elements.hostInput.value = savedHost;
-      } else if (window.location.protocol.startsWith('http') && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-        elements.hostInput.value = window.location.host;
+    // Host field handling:
+    // Browser/PWA already knows the host and uses relative endpoints.
+    // Native wrapper apps (Capacitor) show and configure the PC IP host.
+    if (!isNativeApp()) {
+      if (elements.hostField) elements.hostField.classList.add('hidden');
+      try {
+        localStorage.removeItem(HOST_STORAGE_KEY);
+        setCookie(HOST_STORAGE_KEY, '', -1);
+      } catch (_) {}
+    } else {
+      if (elements.hostField) elements.hostField.classList.remove('hidden');
+      const savedHost = localStorage.getItem(HOST_STORAGE_KEY) || getCookie(HOST_STORAGE_KEY);
+      if (elements.hostInput) {
+        elements.hostInput.value = savedHost ? normalizeServerUrl(savedHost).replace(/^https?:\/\//, '') : '192.168.220.38:8000';
       }
     }
 
